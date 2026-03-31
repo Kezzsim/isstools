@@ -9,6 +9,8 @@ from PyQt5 import uic, QtGui, QtCore
 
 from PyQt5.QtCore import QThread, QSettings
 
+from tiled.client import from_uri
+
 from isstools.widgets import (widget_general_info, widget_trajectory_manager, widget_processing, widget_batch,
                               widget_run, widget_beamline_setup, widget_run_diff, widget_sdd_manager, widget_beamline_status,
                               widget_user_motors, widget_xspress3x_manager)
@@ -16,7 +18,7 @@ from isstools.widgets import (widget_general_info, widget_trajectory_manager, wi
 from isstools.elements import EmittingStream
 from isstools.elements.batch_motion import SamplePositioner
 from isstools.process_callbacks.callback import ProcessingCallback
-from xas.process import process_interpolate_bin
+from xas.process import process_interpolate_bin_with_tiled
 import time
 ui_path = pkg_resources.resource_filename('isstools', 'ui/XLive.ui')
 
@@ -57,6 +59,7 @@ class XliveGui(*uic.loadUiType(ui_path)):
                  wps = None,
                  mfc = None,
                  window_title="XLive @QAS/07-BM NSLS-II",
+                 tiled_client=None,
                  *args, **kwargs):
         '''
 
@@ -131,6 +134,7 @@ class XliveGui(*uic.loadUiType(ui_path)):
         else:
             self.sender = None
 
+        self.tiled_client = tiled_client
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -397,15 +401,18 @@ class ProcessingThread(QThread):
             try:
                 attempt += 1
                 uid = self.doc['run_start']
-                print(f' File received {uid}')
-                process_interpolate_bin(self.doc,
-                                        self.gui.db,
-                                        self.gui.widget_run.draw_interpolated_data,
-                                        self.gui.widget_processing.new_bin_df_arrived)
+                print(f' File received {uid} : Save to tiled')
+                # client = from_uri("https://tiled.nsls2.bnl.gov", remember_me=False, username=None)[f"qas/migration/{uid}"]
+                process_interpolate_bin_with_tiled(self.gui.tiled_client[f"qas/migration/{uid}"], tiled_writing_client=self.gui.tiled_client['tst/sandbox/qas/processed'],draw_func_interp=self.gui.widget_run.draw_interpolated_data)
+                # process_interpolate_bin(self.doc,
+                #                         self.gui.db,
+                #                         self.gui.widget_run.draw_interpolated_data,
+                #                         self.gui.widget_processing.new_bin_df_arrived)
 
                     # process_interpolate_bin(self.doc, self.gui.db, self.gui.widget_run.draw_interpolated_data, None, self.gui.cloud_dispatcher, print_func=self.print)
                 self.doc = None
             except Exception as e:
+                raise e
                 if self.soft_mode:
                     print(f'Exception: {e}')
                     print(f'>>>>>> #{attempt} Attempt to process data ({time.ctime()}) ')
