@@ -61,6 +61,7 @@ class UIRunDiff(*uic.loadUiType(ui_path)):
         self.mono = mono
         self.parent_gui = parent_gui
         self.comboBox_detector_list.addItems(['Perkin', 'Pilatus'])
+        self.comboBox_detector_list.setCurrentText('Pilatus')
         self.run_start.clicked.connect(self.run_diffraction)
 
         self.settings = QSettings(parent_gui.window_title, 'XLive')
