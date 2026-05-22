@@ -60,8 +60,9 @@ class UIRunDiff(*uic.loadUiType(ui_path)):
         self.plans_diff_pilatus_dafs = plans_diff[3]
         self.mono = mono
         self.parent_gui = parent_gui
-        self.comboBox_detector_list.addItems(['Perkin', 'Pilatus'])
-        self.comboBox_detector_list.setCurrentText('Pilatus')
+        # self.comboBox_detector_list.addItems(['Perkin', 'Pilatus'])
+        self.comboBox_detector_list.addItems(['Pilatus'])
+        # self.comboBox_detector_list.setCurrentText('Pilatus')
         self.run_start.clicked.connect(self.run_diffraction)
 
         self.settings = QSettings(parent_gui.window_title, 'XLive')
@@ -77,11 +78,15 @@ class UIRunDiff(*uic.loadUiType(ui_path)):
         self.addCanvas()
 
 
+    # def update_plan_limits(self):
+    #     if self.comboBox_detector_list.currentIndex() == 1:
+    #         self.doubleSpinBox_subframe_time.setMaximum(60)
+    #     else:
+    #         self.doubleSpinBox_subframe_time.setMaximum(5)
+
     def update_plan_limits(self):
-        if self.comboBox_detector_list.currentIndex() == 1:
-            self.doubleSpinBox_subframe_time.setMaximum(60)
-        else:
-            self.doubleSpinBox_subframe_time.setMaximum(5)
+        self.doubleSpinBox_subframe_time.setMaximum(60)
+
 
     def sample_to_detector_distance(self):
         _value = self.pe1.sample_to_detector_distance.get()
@@ -138,25 +143,43 @@ class UIRunDiff(*uic.loadUiType(ui_path)):
             # else:
             #     self.run_mode_uids = self.RE(self.plans_diff_pilatus(**run_parameters))
 
-            if self.comboBox_detector_list.currentIndex() == 0:
-                self.run_mode_uids = self.RE(self.plans_diff(**run_parameters))
+            # if self.comboBox_detector_list.currentIndex() == 0:
+            #     self.run_mode_uids = self.RE(self.plans_diff(**run_parameters))
+            # else:
+            #     if self.checkBox_dafs_mode.isChecked():
+            #         parameters = {'e0' : float(self.doubleSpinBox_e0.value()),
+            #         'below_edge' : float(self.doubleSpinBox_below_edge.value()),
+            #         'above_edge': float(self.doubleSpinBox_above_edge.value()),
+            #         'edge_start' : float(self.doubleSpinBox_edge_start.value()),
+            #         'edge_end' : float(self.doubleSpinBox_edge_end.value()),
+            #         'pre_edge_spacing' : float(self.doubleSpinBox_pre_edge_spacing.value()),
+            #         'xanes_spacing' : float(self.doubleSpinBox_xanes_spacing.value()),
+            #         'exafs_k_spacing' : float(self.doubleSpinBox_exafs_k_spacing.value()),
+            #         'dafs_mode': self.checkBox_dafs_mode.isChecked()}
+            #
+            #         final_dict = {**run_parameters, **parameters}
+            #
+            #         self.run_mode_uids = self.RE(self.plans_diff_pilatus_dafs(**final_dict))
+            #     else:
+            #         self.run_mode_uids = self.RE(self.plans_diff_pilatus(**run_parameters))
+
+
+            if self.checkBox_dafs_mode.isChecked():
+                parameters = {'e0' : float(self.doubleSpinBox_e0.value()),
+                'below_edge' : float(self.doubleSpinBox_below_edge.value()),
+                'above_edge': float(self.doubleSpinBox_above_edge.value()),
+                'edge_start' : float(self.doubleSpinBox_edge_start.value()),
+                'edge_end' : float(self.doubleSpinBox_edge_end.value()),
+                'pre_edge_spacing' : float(self.doubleSpinBox_pre_edge_spacing.value()),
+                'xanes_spacing' : float(self.doubleSpinBox_xanes_spacing.value()),
+                'exafs_k_spacing' : float(self.doubleSpinBox_exafs_k_spacing.value()),
+                'dafs_mode': self.checkBox_dafs_mode.isChecked()}
+
+                final_dict = {**run_parameters, **parameters}
+
+                self.run_mode_uids = self.RE(self.plans_diff_pilatus_dafs(**final_dict))
             else:
-                if self.checkBox_dafs_mode.isChecked():
-                    parameters = {'e0' : float(self.doubleSpinBox_e0.value()),
-                    'below_edge' : float(self.doubleSpinBox_below_edge.value()),
-                    'above_edge': float(self.doubleSpinBox_above_edge.value()),
-                    'edge_start' : float(self.doubleSpinBox_edge_start.value()),
-                    'edge_end' : float(self.doubleSpinBox_edge_end.value()),
-                    'pre_edge_spacing' : float(self.doubleSpinBox_pre_edge_spacing.value()),
-                    'xanes_spacing' : float(self.doubleSpinBox_xanes_spacing.value()),
-                    'exafs_k_spacing' : float(self.doubleSpinBox_exafs_k_spacing.value()),
-                    'dafs_mode': self.checkBox_dafs_mode.isChecked()}
-
-                    final_dict = {**run_parameters, **parameters}
-
-                    self.run_mode_uids = self.RE(self.plans_diff_pilatus_dafs(**final_dict))
-                else:
-                    self.run_mode_uids = self.RE(self.plans_diff_pilatus(**run_parameters))
+                self.run_mode_uids = self.RE(self.plans_diff_pilatus(**run_parameters))
 
 
 
@@ -175,46 +198,46 @@ class UIRunDiff(*uic.loadUiType(ui_path)):
         else:
             print('Error', 'Please provide the name for the scan')
 
-    def run_diffraction_in_batch(self, sample_name, frame_count, subframe_time, subframe_count, delay=None):
-        run_parameters = []
-
-        # for shutter in [self.shutter_dictionary[shutter] for shutter in self.shutter_dictionary if
-        #                 self.shutter_dictionary[shutter].shutter_type != 'SP']:
-        #     if shutter.state.get():
-        #         print(self, 'Shutter closed')
-        #         break
-
-        # name_provided = self.lineEdit_sample_name.text()
-
-        current_energy = mono1.energy.read()['mono1_energy']['value']
-        name_provided = sample_name
-        if name_provided:
-            timenow = datetime.datetime.now()
-            print('\nStarting scan at {}'.format(timenow.strftime("%H:%M:%S"), flush='true'))
-            start_scan_timer = timer()
-            run_parameters = {'sample_name'   : sample_name,
-                              'frame_count'   : frame_count,
-                              'subframe_time' : subframe_time,
-                              'subframe_count': subframe_count,
-                              'delay'         : delay
-                              }
-
-
-            # Run the scan using the dict created before
-            self.run_mode_uids = []
-            self.run_mode_uids = self.RE(self.plans_diff(**run_parameters))
-
-
-
-            timenow = datetime.datetime.now()
-            print('Scan complete at {}'.format(timenow.strftime("%H:%M:%S")))
-            stop_scan_timer = timer()
-            print('Scan duration {} s'.format(stop_scan_timer - start_scan_timer))
-
-
-        else:
-            print('Error', 'Please provide the name for the scan')
-
+    # def run_diffraction_in_batch(self, sample_name, frame_count, subframe_time, subframe_count, delay=None):
+    #     run_parameters = []
+    #
+    #     # for shutter in [self.shutter_dictionary[shutter] for shutter in self.shutter_dictionary if
+    #     #                 self.shutter_dictionary[shutter].shutter_type != 'SP']:
+    #     #     if shutter.state.get():
+    #     #         print(self, 'Shutter closed')
+    #     #         break
+    #
+    #     # name_provided = self.lineEdit_sample_name.text()
+    #
+    #     current_energy = mono1.energy.read()['mono1_energy']['value']
+    #     name_provided = sample_name
+    #     if name_provided:
+    #         timenow = datetime.datetime.now()
+    #         print('\nStarting scan at {}'.format(timenow.strftime("%H:%M:%S"), flush='true'))
+    #         start_scan_timer = timer()
+    #         run_parameters = {'sample_name'   : sample_name,
+    #                           'frame_count'   : frame_count,
+    #                           'subframe_time' : subframe_time,
+    #                           'subframe_count': subframe_count,
+    #                           'delay'         : delay
+    #                           }
+    #
+    #
+    #         # Run the scan using the dict created before
+    #         self.run_mode_uids = []
+    #         self.run_mode_uids = self.RE(self.plans_diff(**run_parameters))
+    #
+    #
+    #
+    #         timenow = datetime.datetime.now()
+    #         print('Scan complete at {}'.format(timenow.strftime("%H:%M:%S")))
+    #         stop_scan_timer = timer()
+    #         print('Scan duration {} s'.format(stop_scan_timer - start_scan_timer))
+    #
+    #
+    #     else:
+    #         print('Error', 'Please provide the name for the scan')
+    #
 
     def open_tiff_files(self):
 
