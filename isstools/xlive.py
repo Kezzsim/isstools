@@ -1,6 +1,7 @@
 import re
 import sys
 
+from time import sleep, ctime
 import numpy as np
 import pkg_resources
 import math
@@ -28,8 +29,7 @@ from isstools.widgets import (
 from isstools.elements import EmittingStream
 from isstools.elements.batch_motion import SamplePositioner
 from isstools.process_callbacks.callback import ProcessingCallback
-from xas.process import process_interpolate_bin_with_tiled
-import time
+from xas.process import display_interpolate_bin_with_tiled
 
 ui_path = pkg_resources.resource_filename("isstools", "ui/XLive.ui")
 
@@ -240,17 +240,17 @@ class XliveGui(*uic.loadUiType(ui_path)):
         self.run_mode = "run"
 
         # Looking for analog pizzaboxes:
-        regex = re.compile(r'pba\d{1}.*')
+        regex = re.compile(r"pba\d{1}.*")
         matches = [det for det in self.det_dict if re.match(regex, det)]
         self.adc_list = [self.det_dict[x]["obj"] for x in self.det_dict if x in matches]
 
         # Looking for encoder pizzaboxes:
-        regex = re.compile(r'pb\d{1}_enc.*')
+        regex = re.compile(r"pb\d{1}_enc.*")
         matches = [det for det in self.det_dict if re.match(regex, det)]
         self.enc_list = [self.det_dict[x]["obj"] for x in self.det_dict if x in matches]
 
         # Looking for xias:
-        regex = re.compile(r'xia\d{1}')
+        regex = re.compile(r"xia\d{1}")
         matches = [det for det in self.det_dict if re.match(regex, det)]
         self.xia = None
         # self.xia_list = [self.det_dict[x]['obj'] for x in self.det_dict if x in matches]
@@ -439,27 +439,22 @@ class ProcessingThread(QThread):
             try:
                 attempt += 1
                 uid = self.doc["run_start"]
-                print(f" File received {uid} : Save to tiled")
-                process_interpolate_bin_with_tiled(
-                    self.gui.tiled_client[f"qas/migration/{uid}"],
-                    tiled_writing_client=self.gui.tiled_client["qas/processed"],
-                    draw_func_interp=self.gui.widget_run.draw_interpolated_data,
+                print(
+                    f" File received {uid} : Wait + retrieve processed data from tiled"
                 )
-                # process_interpolate_bin(self.doc,
-                #                         self.gui.db,
-                #                         self.gui.widget_run.draw_interpolated_data,
-                #                         self.gui.widget_processing.new_bin_df_arrived)
+                sleep(3)
+                tiled_client = self.gui.tiled_client["qas/processed"]
+                display_interpolate_bin_with_tiled(
+                    tiled_client, uid, self.gui.widget_run.draw_interpolated_data
+                )
 
-                # process_interpolate_bin(self.doc, self.gui.db, self.gui.widget_run.draw_interpolated_data, None, self.gui.cloud_dispatcher, print_func=self.print)
                 self.doc = None
             except Exception as e:
                 raise e
                 if self.soft_mode:
                     print(f"Exception: {e}")
-                    print(
-                        f">>>>>> #{attempt} Attempt to process data ({time.ctime()}) "
-                    )
-                    time.sleep(3)
+                    print(f">>>>>> #{attempt} Attempt to display data ({ctime()}) ")
+                    sleep(3)
                 else:
                     raise e
             if attempt == 5:
